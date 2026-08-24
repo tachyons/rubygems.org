@@ -7,12 +7,12 @@ ruby file: ".ruby-version"
 gem "rails", "~> 8.1.3"
 gem "rails-i18n", "~> 8.1.0"
 
-gem "aws-sdk-s3", "~> 1.226"
-gem "aws-sdk-sqs", "~> 1.116"
-gem "bootsnap", "~> 1.24"
+gem "aws-sdk-s3", "~> 1.229"
+gem "aws-sdk-sqs", "~> 1.117"
+gem "bootsnap", "~> 1.25"
 gem "clearance", "~> 2.12"
 gem "dalli", "~> 3.2"
-gem "datadog", "~> 2.37"
+gem "datadog", "~> 2.40"
 gem "dogstatsd-ruby", "~> 5.7"
 gem "google-protobuf", "~> 4.35"
 gem "faraday", "~> 2.14"
@@ -23,7 +23,7 @@ gem "flipper-active_record", "~> 1.4"
 gem "flipper-ui", "~> 1.4"
 gem "good_job", "~> 3.99"
 gem "gravtastic", "~> 3.2"
-gem "honeybadger", "~> 6.9.0", require: false
+gem "honeybadger", "~> 6.9.1", require: false
 gem "http_accept_language", "~> 2.1"
 gem "kaminari", "~> 1.2"
 gem "mail", "~> 2.9"
@@ -39,7 +39,7 @@ gem "puma-plugin-statsd", "~> 2.8"
 gem "rack", "~> 3.2"
 gem "rackup", "~> 2.3"
 gem "rack-sanitizer", "~> 2.0"
-gem "rbtrace", "~> 0.5.4"
+gem "rbtrace", "~> 0.5.5"
 gem "rdoc", "~> 8.0"
 gem "roadie-rails", "~> 3.4"
 gem "ruby-magic", "~> 0.6"
@@ -57,13 +57,13 @@ gem "pwned", "~> 2.4"
 gem "webauthn", "~> 3.4"
 gem "browser", "~> 6.2"
 gem "bcrypt", "~> 3.1"
-gem "blazer", "~> 3.4.0"
+gem "blazer", "~> 3.5.1"
 gem "maintenance_tasks", "~> 2.17"
 gem "strong_migrations", "~> 2.8"
 gem "phlex-rails", "~> 2.4"
 gem "discard", "~> 2.0"
 gem "user_agent_parser", "~> 2.21"
-gem "pghero", "~> 3.8"
+gem "pghero", "~> 4.0"
 gem "faraday-multipart", "~> 1.2"
 gem "sigstore", "~> 0.2.3"
 gem "kramdown", "~> 2.5"
@@ -71,7 +71,7 @@ gem "zlib", "~> 3.2"
 gem "yaml-schema", "~> 1.2"
 
 # Admin dashboard
-gem "avo", "~> 3.13"
+gem "avo", "~> 3.32"
 gem "pagy", "~> 8.4"
 gem "view_component", "~> 4.12.0"
 gem "pundit", "~> 2.5"
@@ -87,7 +87,7 @@ end
 
 # Logging
 gem "amazing_print", "~> 2.0"
-gem "rails_semantic_logger", "~> 5.0"
+gem "rails_semantic_logger", "~> 5.1"
 gem "pp", "0.6.4"
 
 # Former default gems
@@ -119,16 +119,16 @@ group :development, :test do
   gem "pg_query", "~> 6.2"
 
   # bundle show | rg rubocop | cut -d' ' -f4 | xargs bundle update
-  gem "rubocop", "~> 1.88", require: false
-  gem "rubocop-rails", "~> 2.35", require: false
+  gem "rubocop", "~> 1.89", require: false
+  gem "rubocop-rails", "~> 2.36", require: false
   gem "rubocop-performance", "~> 1.26", require: false
-  gem "rubocop-minitest", "~> 0.39", require: false
+  gem "rubocop-minitest", "~> 0.40", require: false
   gem "rubocop-capybara", "~> 3.0", require: false
   gem "rubocop-factory_bot", "~> 2.28", require: false
 end
 
 group :development do
-  gem "rails-erd", "~> 2.0"
+  gem "rails-erd", "~> 2.1"
   gem "listen", "~> 3.10"
   gem "letter_opener", "~> 1.10"
   gem "letter_opener_web", "~> 3.0"
@@ -148,8 +148,8 @@ group :test do
   gem "shoulda-matchers", "~> 8.0"
   gem "capybara-playwright-driver", "~> 0.5"
   gem "webmock", "~> 3.26"
-  gem "simplecov", "~> 0.22", require: false
-  gem "simplecov-cobertura", "~> 3.2", require: false
+  gem "simplecov", "~> 1.1", require: false
+  gem "simplecov-cobertura", "~> 4.0", require: false
   gem "aggregate_assertions", "~> 0.3.0"
   gem "minitest-gcstats", "~> 1.3"
   gem "minitest-reporters", "~> 1.8"

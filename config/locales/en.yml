@@ -1,5 +1,8 @@
 ---
 en:
+  admin:
+    delete_user:
+      blocked_reason: Select Keep gems published because this user is the sole owner of gem versions published more than 30 days ago or with more than 100,000 downloads.
   credentials_required: Credentials required
   copied: Copied!
   copy_to_clipboard: Copy to clipboard
@@ -95,6 +98,8 @@ en:
         repository_owner_id: GitHub Repository Owner ID
         workflow_repository_owner: Workflow Repository Owner
         workflow_repository_name: Workflow Repository Name
+      oidc/trusted_publisher/gitlab:
+        project_id: GitLab Project ID
       oidc/pending_trusted_publisher:
         rubygem_name: RubyGem name
     errors:
@@ -105,6 +110,8 @@ en:
         disposable_email_domain: "domain '%{domain}' is a disposable email provider and cannot be used for registration. Please use a valid personal email. If this block is incorrect, email support@rubygems.org."
         public_suffix: is a public suffix and cannot be used; specify a registrable domain
         protected_provider: is a major consumer mail provider and cannot be blocked
+        publisher_already_exists: publisher already exists
+        invalid_extension: must end with .yml or .yaml
       models:
         api_key:
           attributes:
@@ -182,6 +189,7 @@ en:
       invalid_gem: Selected gem cannot be scoped to this key
     destroy:
       success: "Successfully deleted API key: %{name}"
+      already_expired: The API key has already expired.
     index:
       api_keys: API keys
       name: Name
@@ -205,8 +213,11 @@ en:
       reset: Reset
       save_key: "Note that we won't be able to show the key to you again. New API key:"
       mfa: MFA
+      mfa_enabled_notice: This API key requires multi-factor authentication when it is used.
       expiration: Expiration
       update_owner: Update Owner
+      view_expired: View previous API keys
+      view_active: Back to active API keys
     new:
       new_api_key: New API key
     reset:
@@ -217,6 +228,7 @@ en:
     edit:
       edit_api_key: "Edit API key"
       invalid_key: An invalid API key cannot be edited. Please delete it and create a new one.
+      expired_key: An expired API key cannot be edited. Please create a new one.
     all_gems: All Gems
     gem_ownership_removed: Ownership of the %{rubygem_name} gem has been removed after being scoped to this key.
   dashboards:
@@ -364,6 +376,10 @@ en:
     gem_yanked:
       subject: Gem %{gem} yanked from %{host}
       title: GEM YANKED
+    cache_exposure_inactive_notice:
+      subject: Your %{host} legacy API key may have been exposed
+    cache_exposure_notice:
+      subject: Your %{host} API key was expired
     reset_api_key:
       subject: "%{host} API key was reset"
       title: API KEY RESET
@@ -492,7 +508,7 @@ en:
       show:
         accept: Accept
         decline: Decline
-        title_html: "invited you to join their organization<br>as an <span class=\"font-bold\">%{role}</span>."
+        title_html: 'invited you to join their organization<br>as an <span class="font-bold">%{role}</span>.'
   pages:
     index:
       title: Pages
@@ -1090,6 +1106,18 @@ en:
         workflow_repository_name_help_html: |
           <strong>For <a href="https://docs.github.com/en/actions/sharing-automations/reusing-workflows">reusable workflows</a> only:</strong> The name of the repository containing the reusable workflow file.<br>
           Leave blank if the workflow is defined in the same repository as above (the common case).
+      gitlab:
+        project_path_help_html: "The path to the GitLab project, in the format <code>&lt;namespace&gt;/&lt;project&gt;</code>"
+        ci_config_path_help_html: "The path to the CI configuration file (e.g. <code>.gitlab-ci.yml</code>)"
+        environment_help_html: "The name of the GitLab CI/CD environment"
+        ref_type_help_html: "Restrict publishing to a specific ref type (Branch or Tag)"
+        branch_name_help_html: "The name of the branch to restrict publishing to (e.g. <code>main</code>)"
+        table:
+          project_path: "GitLab Project Path"
+          ci_config_path: "GitLab CI Config Path"
+          environment: "GitLab Environment"
+          ref_type: "Ref Type"
+          branch_name: "Branch Name"
       pending:
         rubygem_name_help_html: "The gem (on RubyGems.org) that will be created when this publisher is used"
   duration:
@@ -1149,6 +1177,7 @@ en:
       api_key:
         api_key_created: "API Key Created"
         api_key_deleted: "API Key Deleted"
+        api_key_cache_exposure_revoked: "API Key Revoked (security incident)"
         api_key_name: "Name: %{name}"
         api_key_scopes: "Scopes: %{scopes}"
         api_key_gem_html: "Gem: %{gem}"

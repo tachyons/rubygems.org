@@ -1,5 +1,8 @@
 ---
 ja:
+  admin:
+    delete_user:
+      blocked_reason:
   credentials_required: 認証情報が必要です
   copied: コピー完了!
   copy_to_clipboard: クリップボードにコピー
@@ -91,6 +94,8 @@ ja:
         repository_owner_id: GitHubリポジトリの所有者ID
         workflow_repository_owner:
         workflow_repository_name:
+      oidc/trusted_publisher/gitlab:
+        project_id:
       oidc/pending_trusted_publisher:
         rubygem_name: RubyGem名
     errors:
@@ -101,6 +106,8 @@ ja:
         disposable_email_domain:
         public_suffix:
         protected_provider:
+        publisher_already_exists:
+        invalid_extension:
       models:
         api_key:
           attributes:
@@ -178,6 +185,7 @@ ja:
       invalid_gem: 選択されたgemはこのキーのスコープにありません
     destroy:
       success: APIキーが正常に削除されました：%{name}
+      already_expired:
     index:
       api_keys: APIキー
       name: 名前
@@ -201,8 +209,11 @@ ja:
       reset: リセット
       save_key: キーを二度と表示できなくなるためご注意ください。新しいAPIキー：
       mfa: MFA
+      mfa_enabled_notice:
       expiration: 期限
       update_owner: 所有者を更新
+      view_expired:
+      view_active:
     new:
       new_api_key: 新しいAPIキー
     reset:
@@ -213,6 +224,7 @@ ja:
     edit:
       edit_api_key: APIキーを編集する
       invalid_key: 正しくないAPIキーは編集できません。削除して新規作成してください。
+      expired_key:
     all_gems: 全てのgem
     gem_ownership_removed: このキーのスコープにあった%{rubygem_name}の所有権が削除されました。
   dashboards:
@@ -361,6 +373,10 @@ ja:
     gem_yanked:
       subject: "%{gem} gemが%{host}からヤンクされました"
       title: gemがヤンクされました
+    cache_exposure_inactive_notice:
+      subject:
+    cache_exposure_notice:
+      subject:
     reset_api_key:
       subject: "%{host}のAPIキーがリセットされました"
       title: APIキーがリセットされました
@@ -1105,6 +1121,18 @@ ja:
           特にリポジトリに、コミットアクセスを持つがRubyGems.orgへのgemのプッシュアクセスを持つべきではないメンテナがいるときが該当します。
         workflow_repository_owner_help_html:
         workflow_repository_name_help_html:
+      gitlab:
+        project_path_help_html:
+        ci_config_path_help_html:
+        environment_help_html:
+        ref_type_help_html:
+        branch_name_help_html:
+        table:
+          project_path:
+          ci_config_path:
+          environment:
+          ref_type:
+          branch_name:
       pending:
         rubygem_name_help_html: "（RubyGems.orgの）gemはこの発行元が使われたときに作られます"
   duration:
@@ -1164,6 +1192,7 @@ ja:
       api_key:
         api_key_created: APIキーが作成されました
         api_key_deleted: APIキーが削除されました
+        api_key_cache_exposure_revoked:
         api_key_name: 名前：%{name}
         api_key_scopes: スコープ：%{scopes}
         api_key_gem_html: gem：%{gem}

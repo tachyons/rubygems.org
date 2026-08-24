@@ -19,14 +19,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
-      RUBYGEMS_VERSION: "4.0.12"
+      RUBYGEMS_VERSION: "4.0.16"
       RUBY_VERSION: .ruby-version
       RUBYGEMS_ORG_SECRETS_AVAILABLE: ${{ github.repository == 'rubygems/rubygems.org' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == 'rubygems/rubygems.org') }}
     permissions:
       contents: read
       id-token: write # Needed to authenticate to AWS through OIDC
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Set up Docker Buildx
@@ -42,7 +42,7 @@ jobs:
       - name: Install and start services (needed for image test)
         run: docker compose up -d
       - name: Configure AWS credentials from Production account
-        uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6.2.2
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         if: env.RUBYGEMS_ORG_SECRETS_AVAILABLE == 'true'
         with:
           role-to-assume: arn:aws:iam::048268392960:role/rubygems-ecr-pusher

@@ -6,8 +6,6 @@ class SessionsController < Clearance::SessionsController
   include WebauthnVerifiable
   include SessionVerifiable
 
-  layout "hammy"
-
   before_action :redirect_to_signin, unless: :signed_in?, only: %i[verify webauthn_authenticate authenticate]
   before_action :redirect_to_new_mfa, if: :mfa_required_not_yet_enabled?, only: %i[verify webauthn_authenticate authenticate]
   before_action :redirect_to_settings_strong_mfa_required, if: :mfa_required_weak_level_enabled?, only: %i[verify webauthn_authenticate authenticate]
@@ -239,7 +237,7 @@ class SessionsController < Clearance::SessionsController
   end
 
   def initiate_compromised_password_reset!(user)
-    user.forgot_password!
+    user.invalidate_password_reset!
     PasswordMailer.compromised_password_reset(user).deliver_later
   end
 

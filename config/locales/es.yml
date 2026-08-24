@@ -1,5 +1,8 @@
 ---
 es:
+  admin:
+    delete_user:
+      blocked_reason:
   credentials_required: Credenciales requeridas
   copied: "¡Copiado!"
   copy_to_clipboard: Copiar al portapapeles
@@ -96,6 +99,8 @@ es:
         repository_owner_id:
         workflow_repository_owner:
         workflow_repository_name:
+      oidc/trusted_publisher/gitlab:
+        project_id:
       oidc/pending_trusted_publisher:
         rubygem_name:
     errors:
@@ -108,6 +113,8 @@ es:
         disposable_email_domain:
         public_suffix:
         protected_provider:
+        publisher_already_exists:
+        invalid_extension:
       models:
         api_key:
           attributes:
@@ -187,6 +194,7 @@ es:
       invalid_gem: La gema seleccionada no se puede incluir en esta clave
     destroy:
       success: 'Clave de API eliminada con éxito: %{name}'
+      already_expired:
     index:
       api_keys: Claves de API
       name: Nombre
@@ -211,8 +219,11 @@ es:
       save_key: 'Ten en cuenta que no se volverá a mostrar la clave de API. Nueva
         clave de API:'
       mfa: AMF
+      mfa_enabled_notice:
       expiration:
       update_owner:
+      view_expired:
+      view_active:
     new:
       new_api_key: Nueva clave de API
     reset:
@@ -225,6 +236,7 @@ es:
       edit_api_key: Editar clave de API
       invalid_key: No se puede editar una clave de API inválida. Por favor bórrala
         y crea una nueva.
+      expired_key:
     all_gems: Todas las gemas
     gem_ownership_removed: Se ha eliminado la propiedad de %{rubygem_name} tras haber
       sido añadida a esta clave.
@@ -385,6 +397,10 @@ es:
     gem_yanked:
       subject: Gema %{gem} eliminada de %{host}
       title: GEMA ELIMINADA
+    cache_exposure_inactive_notice:
+      subject:
+    cache_exposure_notice:
+      subject:
     reset_api_key:
       subject: Clave de API de %{host} restablecida
       title: CLAVE DE API RESTABLECIDA
@@ -1203,6 +1219,18 @@ es:
         environment_help_html:
         workflow_repository_owner_help_html:
         workflow_repository_name_help_html:
+      gitlab:
+        project_path_help_html:
+        ci_config_path_help_html:
+        environment_help_html:
+        ref_type_help_html:
+        branch_name_help_html:
+        table:
+          project_path:
+          ci_config_path:
+          environment:
+          ref_type:
+          branch_name:
       pending:
         rubygem_name_help_html:
   duration:
@@ -1262,6 +1290,7 @@ es:
       api_key:
         api_key_created:
         api_key_deleted:
+        api_key_cache_exposure_revoked:
         api_key_name:
         api_key_scopes:
         api_key_gem_html:
