@@ -27,7 +27,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     end
 
     should "allow sign up" do
-      stay_under_limit_for("clearance/ip")
+      update_limit_for("signups/global:global", Rack::Attack::SIGNUP_LIMIT - 1, Rack::Attack::SIGNUP_LIMIT_PERIOD)
 
       user = build(:user)
       post "/users",
@@ -207,14 +207,16 @@ class RackAttackTest < ActionDispatch::IntegrationTest
         end
 
         should "allow mfa forgot password" do
-          @user.forgot_password!
+          token = @user.issue_password_reset!
           get "/password/edit",
-            params: { token: @user.confirmation_token, user_id: @user.id }
+            params: { token:, user_id: @user.id }
+
+          assert_response :success
           post "/password/otp_edit",
-            params: { token: @user.confirmation_token, otp: ROTP::TOTP.new(@user.totp_seed).now },
+            params: { otp: ROTP::TOTP.new(@user.totp_seed).now },
             headers: { REMOTE_ADDR: @ip_address }
 
-          assert_response :ok
+          assert_redirected_to "/password/reset"
         end
 
         should "allow reverse_dependencies index" do
@@ -280,7 +282,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     end
 
     should "throttle sign up" do
-      exceed_limit_for("clearance/ip")
+      update_limit_for("signups/global:global", Rack::Attack::SIGNUP_LIMIT, Rack::Attack::SIGNUP_LIMIT_PERIOD)
 
       user = build(:user)
       post "/users",
@@ -610,11 +612,12 @@ class RackAttackTest < ActionDispatch::IntegrationTest
 
         should "throttle for mfa forgot password per user at level #{level}" do
           freeze_time do
-            @user.forgot_password!
-            exceed_exponential_user_limit_for("clearance/user/#{level}", @user.confirmation_token, level)
+            token = @user.issue_password_reset!
+            get "/password/edit", params: { token:, user_id: @user.id }
+            exceed_exponential_user_limit_for("clearance/user/#{level}", @user.id, level)
 
             post "/password/otp_edit",
-              params: { token: @user.confirmation_token, otp: ROTP::TOTP.new(@user.totp_seed).now }
+              params: { otp: ROTP::TOTP.new(@user.totp_seed).now }
 
             assert_throttle_at(level)
           end

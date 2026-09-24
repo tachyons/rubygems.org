@@ -4,10 +4,12 @@ class Rack::Attack
   include SemanticLogger::Loggable
 
   REQUEST_LIMIT = 100
+  SIGNUP_LIMIT = 300
   EXP_BASE_REQUEST_LIMIT = 300
   PUSH_LIMIT = 400
   REQUEST_LIMIT_PER_EMAIL = 10
   LIMIT_PERIOD = 10.minutes
+  SIGNUP_LIMIT_PERIOD = 1.minute
   PUSH_LIMIT_PERIOD = 60.minutes
   EXP_BASE_LIMIT_PERIOD = 300.seconds
   EXP_BACKOFF_LEVELS = [1, 2].freeze
@@ -30,7 +32,6 @@ class Rack::Attack
 
   protected_ui_actions = [
     { controller: "sessions",             action: "create" },
-    { controller: "users",                action: "create" },
     { controller: "passwords",            action: "edit" },
     { controller: "sessions",             action: "authenticate" },
     { controller: "passwords",            action: "create" },
@@ -109,6 +110,12 @@ class Rack::Attack
     req.ip if protected_route?(protected_ui_actions, req.path, req.request_method)
   end
 
+  protected_signup_action = [controller: "users", action: "create"]
+
+  throttle("signups/global", limit: SIGNUP_LIMIT, period: SIGNUP_LIMIT_PERIOD) do |req|
+    "global" if protected_route?(protected_signup_action, req.path, req.request_method)
+  end
+
   # 300 req in 300 seconds
   # 600 req in 90000 seconds (25 hours)
   EXP_BACKOFF_LEVELS.each do |level|
@@ -128,9 +135,9 @@ class Rack::Attack
         # otp_create doesn't have remember_token set. use session[:mfa_user]
         if protected_route?([otp_create_action], req.path, req.request_method)
           action_dispatch_req.session.fetch("mfa_user", "").presence
-        # password#otp_edit has unique confirmation token
+        # password#otp_edit has the reset user bound to the session
         elsif protected_route?([mfa_password_edit_action], req.path, req.request_method)
-          req.params.fetch("token", "").presence
+          action_dispatch_req.session.fetch("password_reset_user", "").presence
         else
           User.find_by_remember_token(action_dispatch_req.cookie_jar.signed["remember_token"])&.email.presence
         end

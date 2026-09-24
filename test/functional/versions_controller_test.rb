@@ -109,15 +109,13 @@ class VersionsControllerTest < ActionController::TestCase
         The date displayed was specified by the author in the gemspec.
       NOTICE
 
-      assert_select ".gem__version__date", text: "January 01, 2000*", count: 1 do |elements|
-        version = elements.first
+      assert_select "[data-testid='version-date']", text: /January 01, 2000/, count: 1
+      assert_select "[data-testid='version-date'] button sup", text: "*", count: 1
 
-        assert_equal(tooltip_text, version["data-tooltip"])
-      end
+      triggers = css_select("[data-testid='version-date'] button[aria-describedby]")
 
-      assert_select ".gem__version__date sup", text: "*", count: 1
-
-      assert_select "[data-testid='versions-count']", text: /1 version since January 01, 2000/, count: 1
+      assert_equal 1, triggers.size
+      assert_select "##{triggers.first['aria-describedby']}[role='tooltip']", text: tooltip_text, count: 1
     end
   end
 
@@ -135,7 +133,7 @@ class VersionsControllerTest < ActionController::TestCase
         get :index, params: { rubygem_id: @rubygem.name }
 
         assert_response :success
-        page_versions = css_select(".gem__versions a").map(&:text)
+        page_versions = css_select("[data-testid='gem-versions'] a").map(&:text)
 
         assert_includes page_versions, "1.1.2"
         refute_includes page_versions, "1.1.1"
@@ -145,7 +143,7 @@ class VersionsControllerTest < ActionController::TestCase
         get :index, params: { rubygem_id: @rubygem.name, page: 2 }
 
         assert_response :success
-        page_versions = css_select(".gem__versions a").map(&:text)
+        page_versions = css_select("[data-testid='gem-versions'] a").map(&:text)
 
         refute_includes page_versions, "1.1.2"
         assert_includes page_versions, "1.1.1"
@@ -229,15 +227,79 @@ class VersionsControllerTest < ActionController::TestCase
     should "show yanked notice" do
       assert page.has_content?("This version has been yanked")
     end
+
     should "render other versions" do
       assert page.has_content?("Versions")
       assert page.has_content?(@version.number)
-      css = "small:contains('#{@version.authored_at.to_date.to_fs(:long)}')"
 
-      assert page.has_css?(css)
+      assert page.has_css?("[data-testid='version-date']", text: @version.authored_at.to_date.to_fs(:long))
     end
+
     should "renders owner gems overview link" do
       assert page.has_selector?("a[href='#{profile_path('johndoe')}']")
+    end
+  end
+
+  context "On GET to show with advisories" do
+    setup do
+      @rubygem = create(:rubygem, name: "actionpack")
+      create(:version, rubygem: @rubygem, number: "1.0.0")
+      create(:version, rubygem: @rubygem, number: "2.0.0")
+      create(:advisory, :with_rubygem, rubygem: @rubygem,
+             ranges: ["introduced" => "1.0.0", "fixed" => "2.0.0"],
+             summary: "XSS in Action Pack",
+             identifier: "GHSA-test-vers-0001")
+    end
+
+    should "show the advisory on an affected version page" do
+      with_feature FeatureFlag::OSV_ADVISORIES do
+        get :show, params: { rubygem_id: @rubygem.name, id: "1.0.0" }
+      end
+
+      assert page.has_css?("[data-testid='gem-advisories']")
+      assert page.has_content?("XSS in Action Pack")
+    end
+
+    should "not show the advisory on a patched version page" do
+      with_feature FeatureFlag::OSV_ADVISORIES do
+        get :show, params: { rubygem_id: @rubygem.name, id: "2.0.0" }
+      end
+
+      refute page.has_css?("[data-testid='gem-advisories']")
+    end
+
+    should "not show advisories when the source flag is off" do
+      get :show, params: { rubygem_id: @rubygem.name, id: "1.0.0" }
+
+      refute page.has_css?("[data-testid='gem-advisories']")
+    end
+  end
+
+  context "On GET to index with advisories" do
+    setup do
+      @rubygem = create(:rubygem, name: "actionpack")
+      create(:version, rubygem: @rubygem, number: "1.0.0")
+      create(:version, rubygem: @rubygem, number: "2.0.0")
+      create(:advisory, :with_rubygem, rubygem: @rubygem,
+             ranges: ["introduced" => "1.0.0", "fixed" => "2.0.0"],
+             identifier: "GHSA-test-idx-0001")
+    end
+
+    should "mark affected versions with a warning tooltip when the source is enabled" do
+      with_feature FeatureFlag::OSV_ADVISORIES do
+        get :index, params: { rubygem_id: @rubygem.name }
+      end
+
+      warning = css_select("[data-testid='version-vulnerability'] button[aria-describedby]").sole
+
+      assert_select "[data-testid='version-vulnerability'] svg", count: 1
+      assert_select "##{warning['aria-describedby']}[role='tooltip'].left-full", text: "vulnerable", count: 1
+    end
+
+    should "not mark affected versions when the source flag is off" do
+      get :index, params: { rubygem_id: @rubygem.name }
+
+      assert_select "[data-testid='version-vulnerability']", count: 0
     end
   end
 end

@@ -18,7 +18,9 @@ class OIDC::TrustedPublisher::GitHubAction < ApplicationRecord
   validates :workflow_repository_owner, presence: true, if: -> { workflow_repository_name.present? }
   validates :workflow_repository_name, presence: true, if: -> { workflow_repository_owner.present? }
 
-  validate :unique_publisher
+  validates :repository_owner,
+    uniqueness: { scope: %i[repository_name repository_owner_id workflow_filename environment workflow_repository_owner workflow_repository_name],
+                  message: :publisher_already_exists }
   validate :workflow_filename_format
   validate :workflow_repository_differs_from_repository
 
@@ -69,6 +71,10 @@ class OIDC::TrustedPublisher::GitHubAction < ApplicationRecord
   end
 
   def self.publisher_name = "GitHub Actions"
+
+  def self.url_identifier = "github_actions"
+
+  def self.form_component = OIDC::TrustedPublisher::GitHubAction::FormComponent
 
   def payload
     {
@@ -149,9 +155,16 @@ class OIDC::TrustedPublisher::GitHubAction < ApplicationRecord
     end
 
     def verify(cert)
-      ref = cert.openssl.find_extension("1.3.6.1.4.1.57264.1.14")&.value_der&.then { OpenSSL::ASN1.decode(it).value }
+      build_signer_uri = cert.openssl.find_extension("1.3.6.1.4.1.57264.1.9")&.value_der&.then { OpenSSL::ASN1.decode(it).value }
+      expected_prefix = "https://github.com/#{@trusted_publisher.workflow_repository}/#{@trusted_publisher.workflow_slug}@"
+      unless build_signer_uri&.start_with?(expected_prefix) && build_signer_uri != expected_prefix
+        return Sigstore::VerificationFailure.new(
+          "Certificate's Build Signer URI does not match #{expected_prefix}"
+        )
+      end
+
       Sigstore::Policy::Identity.new(
-        identity: "https://github.com/#{@trusted_publisher.workflow_repository}/#{@trusted_publisher.workflow_slug}@#{ref}",
+        identity: build_signer_uri,
         issuer: OIDC::Provider::GITHUB_ACTIONS_ISSUER
       ).verify(cert)
     end
@@ -178,6 +191,12 @@ class OIDC::TrustedPublisher::GitHubAction < ApplicationRecord
   end
 
   def workflow_slug = ".github/workflows/#{workflow_filename}"
+
+  # The `actor` block on request and gem.push.* log lines. Deliberately no
+  # account_age_seconds, so a CI release can never trip a new-account rule.
+  def log_actor_attributes
+    { gid: to_gid.to_s, type: "trusted_publisher", repository:, workflow: workflow_slug, repository_owner_id: }
+  end
 
   def owns_gem?(rubygem) = rubygem_trusted_publishers.exists?(rubygem: rubygem)
 
@@ -218,20 +237,6 @@ class OIDC::TrustedPublisher::GitHubAction < ApplicationRecord
       rescue Octokit::NotFound
         nil
       end
-  end
-
-  def unique_publisher
-    return unless self.class.exists?(
-      repository_owner: repository_owner,
-      repository_name: repository_name,
-      repository_owner_id: repository_owner_id,
-      workflow_filename: workflow_filename,
-      environment: environment,
-      workflow_repository_owner: workflow_repository_owner,
-      workflow_repository_name: workflow_repository_name
-    )
-
-    errors.add(:base, "publisher already exists")
   end
 
   def workflow_filename_format

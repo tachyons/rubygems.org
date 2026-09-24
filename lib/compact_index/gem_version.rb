@@ -2,7 +2,9 @@
 
 module CompactIndex
   module GemVersionMethods
-    def number_and_platform
+    def version_token
+      return "#{number}-#{content_address}" if content_address?
+
       if platform.nil? || platform == "ruby"
         number
       else
@@ -14,20 +16,26 @@ module CompactIndex
       number_comp = number <=> other.number
 
       if number_comp.zero?
-        [number, platform].compact <=> [other.number, other.platform].compact
+        [platform, ruby_abi, content_address].compact <=>
+          [other.platform, other.ruby_abi, other.content_address].compact
       else
         number_comp
       end
     end
 
     def to_line
-      line = "#{number_and_platform} #{deps_line}|checksum:#{checksum}"
+      line = "#{version_token} #{deps_line}|checksum:#{checksum}"
       line << ",ruby:#{ruby_version_line}" if ruby_version && ruby_version != ">= 0"
       line << ",rubygems:#{rubygems_version_line}" if rubygems_version && rubygems_version != ">= 0"
+      line << ",platform:#{platform}" if content_address?
       line
     end
 
     private
+
+    def content_address?
+      !content_address.nil? && !content_address.empty?
+    end
 
     def ruby_version_line
       join_multiple(ruby_version)
@@ -52,14 +60,9 @@ module CompactIndex
     end
   end
 
-  GemVersion = Struct.new(:number, :platform, :checksum, :info_checksum,
-                          :dependencies, :ruby_version, :rubygems_version) do
-    include GemVersionMethods
-  end
-
   GemVersionV2 = Struct.new(:number, :platform, :checksum, :info_checksum,
                             :dependencies, :ruby_version, :rubygems_version,
-                            :created_at) do
+                            :created_at, :ruby_abi, :content_address) do
     include GemVersionMethods
 
     def to_line

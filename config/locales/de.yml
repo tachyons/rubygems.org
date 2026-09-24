@@ -1,5 +1,8 @@
 ---
 de:
+  admin:
+    delete_user:
+      blocked_reason:
   credentials_required:
   copied: Kopiert!
   copy_to_clipboard: In die Zwischenablage kopieren
@@ -26,13 +29,13 @@ de:
   locale_name: Deutsch
   none: None
   not_found: Nicht gefunden
-  or:
-  forbidden:
-  api_gem_not_found:
-  api_key_forbidden:
-  api_key_soft_deleted:
+  or: oder
+  forbidden: Nicht erlaubt
+  api_gem_not_found: Dieses Gem wurde nicht gefunden
+  api_key_forbidden: Dieser API-Key hat kein Zugang
+  api_key_soft_deleted: Ein ungültiger API-Key kann nicht verwendet werden. Bitte diesen löschen und einen neuen erstellen. 
   api_key_insufficient_scope:
-  email_not_confirmed:
+  email_not_confirmed: Bitte bestätigen Sie ihre E-Mail-Adresse um die API zu nutzen. Prüfen Sie ihr Postfach nach einem Bestätigungs-Link.
   please_sign_up: Zugriff verweigert. Bitte melden Sie sich unter https://rubygems.org
     mit einem Konto an
   please_sign_in: Bitte melden Sie sich an, um fortzufahren.
@@ -100,6 +103,8 @@ de:
         repository_owner_id: GitHub Repository-Besitzer-ID
         workflow_repository_owner:
         workflow_repository_name:
+      oidc/trusted_publisher/gitlab:
+        project_id:
       oidc/pending_trusted_publisher:
         rubygem_name: RubyGem-Name
     errors:
@@ -112,11 +117,17 @@ de:
         disposable_email_domain:
         public_suffix:
         protected_provider:
+        publisher_already_exists:
+        invalid_extension:
       models:
         api_key:
           attributes:
             expires_at:
               inclusion:
+        gem_name_reservation:
+          attributes:
+            base:
+              organization_limit_reached:
         organization:
           attributes:
             handle:
@@ -170,6 +181,10 @@ de:
         id_token_signing_alg_values_supported: Unterstützte ID-Token-Signaturalgorithmen
     errors:
       models:
+        oidc/access_policy:
+          attributes:
+            statements:
+              too_complex:
         oidc/api_key_permissions:
           attributes:
             valid_for:
@@ -191,6 +206,7 @@ de:
       invalid_gem: Das ausgewählte Gem kann diesem Schlüssel nicht zugeordnet werden
     destroy:
       success: 'API-Schlüssel erfolgreich gelöscht: %{name}'
+      already_expired:
     index:
       api_keys: API-Schlüssel
       name: Name
@@ -215,8 +231,11 @@ de:
       save_key: 'Beachten Sie, dass wir Ihnen den Schlüssel nicht erneut anzeigen
         können. Neuer API-Schlüssel:'
       mfa: MFA
+      mfa_enabled_notice:
       expiration:
       update_owner:
+      view_expired:
+      view_active:
     new:
       new_api_key: Neuer API-Schlüssel
     reset:
@@ -228,6 +247,7 @@ de:
       edit_api_key: API-Schlüssel bearbeiten
       invalid_key: Ein ungültiger API-Schlüssel kann nicht bearbeitet werden. Bitte
         löschen Sie ihn und erstellen Sie einen neuen.
+      expired_key:
     all_gems: Alle Gems
     gem_ownership_removed: Die Eigentümerschaft von %{rubygem_name} wurde nach der
       Zuordnung zu diesem Schlüssel entfernt.
@@ -299,6 +319,7 @@ de:
         about: Über uns
         api: API
         blog: Blog
+        bluesky:
         contribute: Beitragen
         data: Daten
         docs: Dokumentation
@@ -318,6 +339,7 @@ de:
         statistics: Statistiken
         status: Status
         support_us:
+        x:
         supported_by: Unterstützt von
         operated_by:
         supported_by_html: |
@@ -325,7 +347,6 @@ de:
           wird unterstützt von
         uptime: Betriebszeit
         secured_by:
-        looking_for_maintainers:
       header:
         profile: Profil
         dashboard: Dashboard
@@ -345,6 +366,8 @@ de:
     gems:
     members:
     invite_member:
+    reservations:
+    reserve_gem_name:
   mailer:
     confirm_your_email: Bitte bestätigen Sie Ihre E-Mail-Adresse mit dem Link, der
       an Ihre E-Mail gesendet wurde.
@@ -388,6 +411,10 @@ de:
     gem_yanked:
       subject: Gem %{gem} von %{host} zurückgezogen
       title: GEM ZURÜCKGEZOGEN
+    cache_exposure_inactive_notice:
+      subject:
+    cache_exposure_notice:
+      subject:
     reset_api_key:
       subject: "%{host} API-Schlüssel wurde zurückgesetzt"
       title: API-SCHLÜSSEL ZURÜCKGESETZT
@@ -507,6 +534,7 @@ de:
       add_member:
       invite:
       transfer:
+      reservations:
     members:
       create:
         user_already_invited:
@@ -532,6 +560,26 @@ de:
         role:
         create:
         invite:
+    gem_name_reservations:
+      create:
+        gem_name_reserved:
+      destroy:
+        gem_name_reservation_removed:
+      index:
+        description:
+        no_reservations:
+        reserve:
+        remove:
+        confirm_remove:
+      new:
+        title:
+        name:
+        name_hint:
+        reserve:
+        limit_html:
+        limit_reached_html:
+        unlimited:
+        disclaimer:
     invitations:
       show:
         accept:
@@ -738,6 +786,9 @@ de:
       update:
       owner_heading:
       push_heading:
+      gems_heading:
+      organizations_heading:
+      organization_info:
   webauthn_verifications:
     expired_or_already_used:
     no_port:
@@ -941,6 +992,17 @@ de:
     index:
       downloads: Downloads
       title: Gems
+    advisories:
+      title:
+        one:
+        other:
+      malware:
+      severity_count:
+      show_fewer:
+      show_more:
+        one:
+        other:
+      view_advisory:
     show:
       bundler_header: Gemfile
       install: installieren
@@ -957,6 +1019,7 @@ de:
       requirements_header: Anforderungen
       show_all_versions: Zeige alle Versionen (%{count} total)
       versions_header: Versionen
+      ruby_abi:
       yanked_notice:
     show_yanked:
       not_hosted_notice: Dieses Gem wird aktuell nicht auf RubyGems.org gehostet.
@@ -1057,6 +1120,8 @@ de:
       imported_gem_version_notice:
     version:
       yanked:
+      ruby_abi:
+      vulnerable:
   webauthn_credentials:
     callback:
       success:
@@ -1152,6 +1217,8 @@ de:
         title:
     trusted_publisher:
       unsupported_type:
+      select_provider:
+      select:
       github_actions:
         repository_owner_help_html:
         repository_name_help_html:
@@ -1159,6 +1226,23 @@ de:
         environment_help_html:
         workflow_repository_owner_help_html:
         workflow_repository_name_help_html:
+      gitlab:
+        name:
+        ref_types:
+          any:
+          tag:
+          branch:
+        project_path_help_html:
+        ci_config_path_help_html:
+        environment_help_html:
+        ref_type_help_html:
+        branch_name_help_html:
+        table:
+          project_path:
+          ci_config_path:
+          environment:
+          ref_type:
+          branch_name:
       pending:
         rubygem_name_help_html:
   duration:
@@ -1218,6 +1302,7 @@ de:
       api_key:
         api_key_created:
         api_key_deleted:
+        api_key_cache_exposure_revoked:
         api_key_name:
         api_key_scopes:
         api_key_gem_html:

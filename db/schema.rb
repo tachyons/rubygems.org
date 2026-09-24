@@ -10,10 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_04_073906) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "hstore"
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pg_trgm"
   enable_extension "pgcrypto"
 
   create_table "admin_github_users", force: :cascade do |t|
@@ -26,6 +27,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.string "oauth_token"
     t.datetime "updated_at", null: false
     t.index ["github_id"], name: "index_admin_github_users_on_github_id", unique: true
+  end
+
+  create_table "advisories", force: :cascade do |t|
+    t.string "aliases", default: [], null: false, array: true
+    t.datetime "created_at", null: false
+    t.string "identifier", null: false
+    t.datetime "modified_at", null: false
+    t.datetime "published_at"
+    t.jsonb "ranges", default: [], null: false
+    t.string "rubygem_name", null: false
+    t.string "severity"
+    t.text "summary", null: false
+    t.string "type", null: false
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.datetime "withdrawn_at"
+    t.index ["rubygem_name"], name: "index_advisories_on_rubygem_name"
+    t.index ["type", "identifier", "rubygem_name"], name: "index_advisories_on_type_and_identifier_and_rubygem_name", unique: true
   end
 
   create_table "api_key_rubygem_scopes", force: :cascade do |t|
@@ -50,6 +69,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.string "soft_deleted_rubygem_name"
     t.datetime "updated_at", precision: nil, null: false
     t.index ["hashed_key"], name: "index_api_keys_on_hashed_key", unique: true
+    t.index ["name"], name: "index_api_keys_on_name_trigram_for_users", opclass: :gin_trgm_ops, where: "((owner_type)::text = 'User'::text)", using: :gin
     t.index ["owner_type", "owner_id"], name: "index_api_keys_on_owner"
     t.check_constraint "owner_id IS NOT NULL", name: "api_keys_owner_id_null"
     t.check_constraint "owner_type IS NOT NULL", name: "api_keys_owner_type_null"
@@ -148,6 +168,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.datetime "created_at", precision: nil, null: false
     t.string "number"
     t.string "platform"
+    t.string "ruby_abi"
     t.string "rubygem"
     t.datetime "updated_at", precision: nil, null: false
     t.integer "user_id"
@@ -250,8 +271,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
   create_table "gem_name_reservations", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
+    t.bigint "organization_id"
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_gem_name_reservations_on_name", unique: true
+    t.index ["organization_id"], name: "index_gem_name_reservations_on_organization_id"
   end
 
   create_table "gem_typo_exceptions", force: :cascade do |t|
@@ -357,6 +380,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.index ["priority", "created_at"], name: "index_good_job_jobs_for_candidate_lookup", where: "(finished_at IS NULL)"
     t.index ["priority", "created_at"], name: "index_good_jobs_jobs_on_priority_created_at_when_unfinished", order: { priority: "DESC NULLS LAST" }, where: "(finished_at IS NULL)"
     t.index ["priority", "scheduled_at"], name: "index_good_jobs_on_priority_scheduled_at_unfinished_unlocked", where: "((finished_at IS NULL) AND (locked_by_id IS NULL))"
+    t.index ["queue_name", "priority", "created_at"], name: "index_good_jobs_on_queue_dequeue_ordered", where: "(finished_at IS NULL)"
     t.index ["queue_name", "scheduled_at"], name: "index_good_jobs_on_queue_name_and_scheduled_at", where: "(finished_at IS NULL)"
     t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at", where: "(finished_at IS NULL)"
   end
@@ -436,6 +460,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.datetime "invitation_expires_at"
     t.bigint "invited_by_id"
     t.bigint "organization_id", null: false
+    t.boolean "push_notifier", default: true, null: false
     t.integer "role", default: 50, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
@@ -515,6 +540,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.index ["repository_owner", "repository_name", "repository_owner_id", "workflow_filename", "environment", "workflow_repository_owner", "workflow_repository_name"], name: "index_oidc_trusted_publisher_github_actions_claims", unique: true
   end
 
+  create_table "oidc_trusted_publisher_gitlabs", force: :cascade do |t|
+    t.string "branch_name"
+    t.string "ci_config_path", null: false
+    t.datetime "created_at", null: false
+    t.string "environment"
+    t.string "project_id", null: false
+    t.string "project_path", null: false
+    t.string "ref_type"
+    t.datetime "updated_at", null: false
+    t.index ["project_path", "project_id", "ci_config_path", "environment", "ref_type", "branch_name"], name: "index_oidc_trusted_publisher_gitlabs_on_claims", unique: true
+  end
+
   create_table "organization_invites", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "invitable_id", null: false
@@ -541,7 +578,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.datetime "created_at", null: false
     t.integer "created_by_id", null: false
     t.text "error"
-    t.string "name_type", null: false
     t.datetime "onboarded_at"
     t.integer "onboarded_organization_id"
     t.string "organization_handle", null: false
@@ -621,6 +657,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.string "name"
     t.bigint "organization_id"
     t.datetime "updated_at", precision: nil
+    t.index "lower((name)::text)", name: "index_rubygems_on_lower_name"
     t.index "regexp_replace(upper((name)::text), '[_-]'::text, ''::text, 'g'::text)", name: "dashunderscore_typos_idx"
     t.index "upper((name)::text) varchar_pattern_ops", name: "index_rubygems_upcase"
     t.index ["indexed"], name: "index_rubygems_on_indexed"
@@ -666,6 +703,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.integer "mail_fails", default: 0
     t.string "mfa_hashed_recovery_codes", default: [], array: true
     t.integer "mfa_level", default: 0
+    t.string "password_reset_token_digest"
+    t.datetime "password_reset_token_expires_at"
     t.datetime "policies_acknowledged_at"
     t.boolean "public_email", default: false, null: false
     t.string "remember_token", limit: 128
@@ -679,11 +718,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.datetime "updated_at", precision: nil
     t.string "webauthn_id"
     t.index "lower((email)::text) varchar_pattern_ops", name: "index_users_on_lower_email"
+    t.index "lower((handle)::text)", name: "index_users_on_lower_handle"
+    t.index ["blocked_email"], name: "index_users_on_blocked_email_trigram", opclass: :gin_trgm_ops, where: "(blocked_email IS NOT NULL)", using: :gin
     t.index ["email"], name: "index_users_on_email"
+    t.index ["email"], name: "index_users_on_email_trigram", opclass: :gin_trgm_ops, using: :gin
     t.index ["handle"], name: "index_users_on_handle"
+    t.index ["handle"], name: "index_users_on_handle_trigram", opclass: :gin_trgm_ops, using: :gin
     t.index ["id", "confirmation_token"], name: "index_users_on_id_and_confirmation_token"
     t.index ["id", "token"], name: "index_users_on_id_and_token"
     t.index ["id"], name: "index_users_on_policies_not_acknowledged", where: "(policies_acknowledged_at IS NULL)"
+    t.index ["password_reset_token_digest"], name: "index_users_on_password_reset_token_digest", unique: true
     t.index ["remember_token"], name: "index_users_on_remember_token"
     t.index ["token"], name: "index_users_on_token"
     t.index ["webauthn_id"], name: "index_users_on_webauthn_id", unique: true
@@ -694,6 +738,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.datetime "built_at", precision: nil
     t.string "canonical_number"
     t.text "cert_chain"
+    t.string "content_address"
     t.datetime "created_at", precision: nil
     t.text "description"
     t.string "full_name"
@@ -713,6 +758,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.string "required_ruby_version"
     t.string "required_rubygems_version", limit: 255
     t.text "requirements"
+    t.string "ruby_abi"
     t.integer "rubygem_id"
     t.string "sha256"
     t.integer "size"
@@ -724,7 +770,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.index "lower((full_name)::text)", name: "index_versions_on_lower_full_name"
     t.index "lower((gem_full_name)::text)", name: "index_versions_on_lower_gem_full_name"
     t.index ["built_at"], name: "index_versions_on_built_at"
-    t.index ["canonical_number", "rubygem_id", "platform"], name: "index_versions_on_canonical_number_and_rubygem_id_and_platform", unique: true
+    t.index ["canonical_number", "rubygem_id", "platform", "ruby_abi"], name: "index_versions_canonical_platform_abi", unique: true, where: "(ruby_abi IS NOT NULL)"
+    t.index ["canonical_number", "rubygem_id", "platform"], name: "index_versions_canonical_platform"
+    t.index ["canonical_number", "rubygem_id", "platform"], name: "index_versions_canonical_platform_no_abi", unique: true, where: "(ruby_abi IS NULL)"
     t.index ["created_at"], name: "index_versions_on_created_at"
     t.index ["full_name"], name: "index_versions_on_full_name"
     t.index ["indexed", "yanked_at"], name: "index_versions_on_indexed_and_yanked_at"
@@ -733,7 +781,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_17_144510) do
     t.index ["prerelease"], name: "index_versions_on_prerelease"
     t.index ["pusher_api_key_id"], name: "index_versions_on_pusher_api_key_id"
     t.index ["pusher_id"], name: "index_versions_on_pusher_id"
-    t.index ["rubygem_id", "number", "platform"], name: "index_versions_on_rubygem_id_and_number_and_platform", unique: true
+    t.index ["rubygem_id", "number", "content_address"], name: "index_versions_number_content_address", unique: true, where: "(content_address IS NOT NULL)"
+    t.index ["rubygem_id", "number", "platform", "ruby_abi"], name: "index_versions_number_platform_abi", unique: true, where: "(ruby_abi IS NOT NULL)"
+    t.index ["rubygem_id", "number", "platform"], name: "index_versions_number_platform"
+    t.index ["rubygem_id", "number", "platform"], name: "index_versions_number_platform_no_abi", unique: true, where: "(ruby_abi IS NULL)"
     t.index ["rubygem_id", "position", "created_at"], name: "index_versions_on_rubygem_id_and_position_and_created_at", order: { created_at: :desc }, where: "(indexed = true)", include: ["full_name", "number", "platform"]
   end
 

@@ -2,16 +2,12 @@
 
 require "simplecov"
 SimpleCov.start "rails" do
-  add_filter "lib/tasks"
-  add_filter "lib/rails_development_log_formatter.rb"
+  skip "lib/tasks"
+  skip "lib/rails_development_log_formatter.rb"
 
   if ENV["CI"]
     require "simplecov-cobertura"
     formatter SimpleCov::Formatter::CoberturaFormatter
-
-    # Avo tests are super fragile :'(
-    require "minitest/retry"
-    Minitest::Retry.use!
   end
 end
 
@@ -92,6 +88,7 @@ class ActiveSupport::TestCase
   parallelize_setup do |worker|
     self.parallel_worker_number = worker
     SimpleCov.command_name "rails-worker-#{worker}"
+    RubygemFs.mock!
     Version.reset_column_information
     SemanticLogger.reopen
     Searchkick.index_suffix = "_#{worker}"
@@ -170,7 +167,7 @@ class ActiveSupport::TestCase
       original = original_attributes[attribute]
       latest = reloaded_object.send(attribute)
 
-      assert_not_equal original, latest,
+      refute_equal original, latest,
         "Expected #{object.class} #{attribute} to change but still #{latest}"
     end
   end
@@ -230,7 +227,7 @@ class ActiveSupport::TestCase
 
     create_webauthn_credential_while_signed_in
 
-    find(:css, ".header__popup-link").click
+    find(:css, "[data-testid='header-popup-link']").click
     click_on "Sign out"
 
     assert page.has_content?("Sign in")
@@ -246,7 +243,7 @@ class ActiveSupport::TestCase
     click_on "Register device"
 
     click_on "Copy to clipboard"
-    @mfa_recovery_codes = find(:css, ".recovery-code-list").value.split
+    @mfa_recovery_codes = find(:css, "[data-testid='recovery-code-list']").value.split
 
     check "ack"
     click_on "Continue"

@@ -14,7 +14,7 @@ class ProfilesController < ApplicationController
   def show
     @user = User.confirmed.find_by_slug!(params[:id])
     return render_not_found unless @user
-    @rubygems = @user.rubygems_downloaded.includes(%i[latest_version most_recent_version gem_download]).strict_loading
+    @rubygems = @user.rubygems_downloaded.preload(:most_recent_version, :gem_download).strict_loading
     add_breadcrumb @user.display_handle
   end
 
@@ -49,7 +49,7 @@ class ProfilesController < ApplicationController
   end
 
   def destroy
-    DeleteUserJob.perform_later(user: current_user)
+    DeleteUserJob.perform_later(user: current_user, actor: current_user)
     sign_out
     redirect_to root_path, notice: t(".request_queued")
   end

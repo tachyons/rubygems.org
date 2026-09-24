@@ -1,5 +1,8 @@
 ---
 es:
+  admin:
+    delete_user:
+      blocked_reason:
   credentials_required: Credenciales requeridas
   copied: "¡Copiado!"
   copy_to_clipboard: Copiar al portapapeles
@@ -96,6 +99,8 @@ es:
         repository_owner_id:
         workflow_repository_owner:
         workflow_repository_name:
+      oidc/trusted_publisher/gitlab:
+        project_id:
       oidc/pending_trusted_publisher:
         rubygem_name:
     errors:
@@ -108,11 +113,17 @@ es:
         disposable_email_domain:
         public_suffix:
         protected_provider:
+        publisher_already_exists:
+        invalid_extension:
       models:
         api_key:
           attributes:
             expires_at:
               inclusion:
+        gem_name_reservation:
+          attributes:
+            base:
+              organization_limit_reached:
         organization:
           attributes:
             handle:
@@ -166,6 +177,10 @@ es:
         id_token_signing_alg_values_supported:
     errors:
       models:
+        oidc/access_policy:
+          attributes:
+            statements:
+              too_complex:
         oidc/api_key_permissions:
           attributes:
             valid_for:
@@ -187,6 +202,7 @@ es:
       invalid_gem: La gema seleccionada no se puede incluir en esta clave
     destroy:
       success: 'Clave de API eliminada con éxito: %{name}'
+      already_expired:
     index:
       api_keys: Claves de API
       name: Nombre
@@ -211,8 +227,11 @@ es:
       save_key: 'Ten en cuenta que no se volverá a mostrar la clave de API. Nueva
         clave de API:'
       mfa: AMF
+      mfa_enabled_notice:
       expiration:
       update_owner:
+      view_expired:
+      view_active:
     new:
       new_api_key: Nueva clave de API
     reset:
@@ -225,6 +244,7 @@ es:
       edit_api_key: Editar clave de API
       invalid_key: No se puede editar una clave de API inválida. Por favor bórrala
         y crea una nueva.
+      expired_key:
     all_gems: Todas las gemas
     gem_ownership_removed: Se ha eliminado la propiedad de %{rubygem_name} tras haber
       sido añadida a esta clave.
@@ -296,6 +316,7 @@ es:
         about: Acerca de
         api: API
         blog: Blog
+        bluesky:
         contribute: Contribuye
         data: Datos
         docs: Documentación
@@ -315,6 +336,7 @@ es:
         statistics: Estadísticas
         status: Estado
         support_us:
+        x:
         supported_by: Con el apoyo de
         operated_by:
         supported_by_html: |
@@ -322,7 +344,6 @@ es:
           es respaldado por
         uptime: Uptime
         secured_by: Protegido por
-        looking_for_maintainers: Se buscan mantenedores/as
       header:
         profile: Perfil
         dashboard: Dashboard
@@ -342,6 +363,8 @@ es:
     gems:
     members:
     invite_member:
+    reservations:
+    reserve_gem_name:
   mailer:
     confirm_your_email: Por favor confirma tu dirección de correo con el enlace enviado.
     confirmation_subject: Por favor confirma tu dirección de correo con %{host}
@@ -385,6 +408,10 @@ es:
     gem_yanked:
       subject: Gema %{gem} eliminada de %{host}
       title: GEMA ELIMINADA
+    cache_exposure_inactive_notice:
+      subject:
+    cache_exposure_notice:
+      subject:
     reset_api_key:
       subject: Clave de API de %{host} restablecida
       title: CLAVE DE API RESTABLECIDA
@@ -500,6 +527,7 @@ es:
       add_member:
       invite:
       transfer:
+      reservations:
     members:
       create:
         user_already_invited:
@@ -525,6 +553,26 @@ es:
         role:
         create:
         invite:
+    gem_name_reservations:
+      create:
+        gem_name_reserved:
+      destroy:
+        gem_name_reservation_removed:
+      index:
+        description:
+        no_reservations:
+        reserve:
+        remove:
+        confirm_remove:
+      new:
+        title:
+        name:
+        name_hint:
+        reserve:
+        limit_html:
+        limit_reached_html:
+        unlimited:
+        disclaimer:
     invitations:
       show:
         accept:
@@ -724,6 +772,9 @@ es:
       update: Actualizar
       owner_heading: Notificaciones de propietarios
       push_heading: Notificaciones Push
+      gems_heading:
+      organizations_heading:
+      organization_info:
   webauthn_verifications:
     expired_or_already_used: El token del enlace utilizado ha expirado o ya ha sido
       utilizado.
@@ -954,6 +1005,17 @@ es:
     index:
       downloads: Descargas
       title: Gemas
+    advisories:
+      title:
+        one:
+        other:
+      malware:
+      severity_count:
+      show_fewer:
+      show_more:
+        one:
+        other:
+      view_advisory:
     show:
       bundler_header: Gemfile
       install: instalar
@@ -970,6 +1032,7 @@ es:
       requirements_header: Requerimientos
       show_all_versions: Mostrar todas las versiones (%{count} total)
       versions_header: Versiones
+      ruby_abi:
       yanked_notice: Esta versión fue borrada, y no está disponible para su descarga
         directa ni por otras gemas que puedan haber dependido de la misma.
     show_yanked:
@@ -1086,6 +1149,8 @@ es:
         el archivo gemspec.
     version:
       yanked: borrada
+      ruby_abi:
+      vulnerable:
   webauthn_credentials:
     callback:
       success: Has dado de alta con éxito un dispositivo de seguridad.
@@ -1196,6 +1261,8 @@ es:
         title:
     trusted_publisher:
       unsupported_type:
+      select_provider:
+      select:
       github_actions:
         repository_owner_help_html:
         repository_name_help_html:
@@ -1203,6 +1270,23 @@ es:
         environment_help_html:
         workflow_repository_owner_help_html:
         workflow_repository_name_help_html:
+      gitlab:
+        name:
+        ref_types:
+          any:
+          tag:
+          branch:
+        project_path_help_html:
+        ci_config_path_help_html:
+        environment_help_html:
+        ref_type_help_html:
+        branch_name_help_html:
+        table:
+          project_path:
+          ci_config_path:
+          environment:
+          ref_type:
+          branch_name:
       pending:
         rubygem_name_help_html:
   duration:
@@ -1262,6 +1346,7 @@ es:
       api_key:
         api_key_created:
         api_key_deleted:
+        api_key_cache_exposure_revoked:
         api_key_name:
         api_key_scopes:
         api_key_gem_html:

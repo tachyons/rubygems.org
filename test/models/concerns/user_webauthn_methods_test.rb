@@ -11,6 +11,15 @@ class UserWebauthnMethodsTest < ActiveSupport::TestCase
     should "set webauthn_id" do
       refute_nil @user.webauthn_id
     end
+
+    should "not modify a persisted user when webauthn_id is missing" do
+      @user.update_column(:webauthn_id, nil)
+
+      user = User.find(@user.id)
+
+      assert_nil user.webauthn_id
+      refute_predicate user, :changed?
+    end
   end
 
   context "#webauthn_enabled?" do
@@ -126,8 +135,8 @@ class UserWebauthnMethodsTest < ActiveSupport::TestCase
     should "reset the otp each time the method is called" do
       @webauthn_verification.generate_otp
 
-      assert_not_nil @user.webauthn_verification.otp
-      assert_not_nil @user.webauthn_verification.otp_expires_at
+      refute_nil @user.webauthn_verification.otp
+      refute_nil @user.webauthn_verification.otp_expires_at
 
       @user.refresh_webauthn_verification
 
