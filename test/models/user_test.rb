@@ -65,6 +65,17 @@ class UserTest < ActiveSupport::TestCase
         assert_predicate build(:user, handle: nil), :valid?
       end
 
+      should "not check organization handles when the handle is unchanged" do
+        user = create(:user, handle: "someuser")
+        create(:organization).update_column(:handle, "someuser")
+
+        user.full_name = "A New Name"
+
+        assert_queries_match(/FROM "organizations"/, count: 0) do
+          assert_predicate user, :valid?
+        end
+      end
+
       should "show user id if no handle set" do
         user = build(:user, handle: nil, id: 13)
 
@@ -388,11 +399,11 @@ class UserTest < ActiveSupport::TestCase
     end
 
     should "create api key" do
-      assert_not_nil @user.api_key
+      refute_nil @user.api_key
     end
 
     should "give user if specified name is user handle or email" do
-      assert_not_nil User.find_by_name(@user.handle)
+      refute_nil User.find_by_name(@user.handle)
       assert_equal User.find_by_name(@user.handle), User.find_by_name(@user.handle)
     end
 
@@ -531,6 +542,70 @@ class UserTest < ActiveSupport::TestCase
         @user.update(confirmation_token: SecureRandom.hex(24), token_expires_at: two_minutes_in_future)
 
         assert_predicate @user, :valid_confirmation_token?
+      end
+    end
+
+    context "password reset tokens" do
+      should "store only a digest and expire the token after three hours" do
+        @user.update!(unconfirmed_email: "pending@rubygems-test.org")
+
+        token = @user.issue_password_reset!
+
+        refute_equal token, @user.reload.password_reset_token_digest
+        assert_equal User.password_reset_token_digest(token), @user.password_reset_token_digest
+        assert_in_delta 3.hours.from_now, @user.password_reset_token_expires_at, 2.seconds
+        assert_nil @user.unconfirmed_email
+        assert_equal @user, User.find_by_password_reset_token(token)
+        assert @user.valid_password_reset_token?(token)
+      end
+
+      should "reject an expired password reset token" do
+        token = @user.issue_password_reset!
+        @user.update!(password_reset_token_expires_at: 1.second.ago)
+
+        refute @user.valid_password_reset_token?(token)
+      end
+
+      should "reject an email confirmation token" do
+        @user.update!(unconfirmed_email: "pending@rubygems-test.org")
+        token = @user.confirmation_token
+
+        assert_nil User.find_by_password_reset_token(token)
+        refute @user.valid_password_reset_token?(token)
+      end
+
+      should "consume the token only after a valid password is saved" do
+        token = @user.issue_password_reset!
+
+        assert_equal :invalid_password, @user.update_password_with_token("short", token:)
+        assert @user.reload.valid_password_reset_token?(token)
+
+        assert_equal :updated, @user.update_password_with_token(PasswordHelpers::SECURE_TEST_PASSWORD, token:)
+        assert_nil @user.reload.password_reset_token_digest
+        assert_nil @user.password_reset_token_expires_at
+        assert @user.authenticated?(PasswordHelpers::SECURE_TEST_PASSWORD)
+        assert_equal :invalid_token,
+          @user.update_password_with_token(PasswordHelpers::SECURE_TEST_PASSWORD, token:)
+      end
+
+      should "update the password when the persisted WebAuthn ID is missing" do
+        token = @user.issue_password_reset!
+        @user.update_column(:webauthn_id, nil)
+
+        user = User.find(@user.id)
+
+        assert_equal :updated, user.update_password_with_token(PasswordHelpers::SECURE_TEST_PASSWORD, token:)
+        assert user.reload.authenticated?(PasswordHelpers::SECURE_TEST_PASSWORD)
+        assert_nil user.webauthn_id
+      end
+
+      should "bind the compromised-reset authorization to the reset token" do
+        token = @user.issue_password_reset!
+        reason = @user.compromised_password_reset_reason_for(token)
+
+        assert @user.valid_compromised_password_reset_reason?(reason, token:)
+        refute @user.valid_compromised_password_reset_reason?("compromised", token:)
+        refute @user.valid_compromised_password_reset_reason?(reason, token: "different-token")
       end
     end
 
@@ -908,7 +983,7 @@ class UserTest < ActiveSupport::TestCase
     end
 
     should "set remember_token" do
-      assert_not_nil @user.remember_token
+      refute_nil @user.remember_token
     end
 
     should "set expiry of remember_token to two weeks from now" do

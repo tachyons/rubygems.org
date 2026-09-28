@@ -32,7 +32,7 @@ class Api::V1::WebauthnVerificationsControllerTest < ActionController::TestCase
       should respond_with :success
 
       should "have a body" do
-        assert_not_nil @response.body
+        refute_nil @response.body
       end
 
       if format == :plain
@@ -98,6 +98,23 @@ class Api::V1::WebauthnVerificationsControllerTest < ActionController::TestCase
 
       should "not sign in user" do
         refute_predicate @controller.request.env[:clearance], :signed_in?
+      end
+    end
+
+    context "cache headers" do
+      setup do
+        @user = create(:user)
+        create(:webauthn_credential, user: @user)
+        authorize_with("#{@user.email}:#{@user.password}")
+        post :create
+      end
+
+      should respond_with :success
+
+      # The body is a single-use path_token link; it must never be shared-cached.
+      should "deny shared caching of the minted path token" do
+        assert_equal "private, no-store", @response.headers["Cache-Control"]
+        assert_equal "max-age=0", @response.headers["Surrogate-Control"]
       end
     end
 

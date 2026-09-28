@@ -15,17 +15,7 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
     assert_recognizes(post_route, path: "/api/v1/gems", method: :post)
   end
 
-  def self.should_respond_to_show
-    should respond_with :success
-    should "return a hash" do
-      response = yield(@response.body) if block_given?
-
-      assert_not_nil response
-      assert_kind_of Hash, response
-    end
-  end
-
-  def self.should_respond_to(format, &)
+  def self.show_action_should_respond_to(format)
     context "with #{format.to_s.upcase} for a hosted gem" do
       setup do
         @rubygem = create(:rubygem)
@@ -33,7 +23,13 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
         get :show, params: { id: @rubygem.slug }, format: format
       end
 
-      should_respond_to_show(&)
+      should respond_with :success
+      should "return a hash" do
+        response = yield(@response.body) if block_given?
+
+        refute_nil response
+        assert_kind_of Hash, response
+      end
     end
 
     context "with #{format.to_s.upcase} for a hosted gem with a period in its name" do
@@ -43,7 +39,13 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
         get :show, params: { id: @rubygem.slug }, format: format
       end
 
-      should_respond_to_show(&)
+      should respond_with :success
+      should "return a hash" do
+        response = yield(@response.body) if block_given?
+
+        refute_nil response
+        assert_kind_of Hash, response
+      end
     end
   end
 
@@ -54,11 +56,11 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
     end
 
     context "On GET to show" do
-      should_respond_to(:json) do |body|
+      show_action_should_respond_to(:json) do |body|
         JSON.load body
       end
 
-      should_respond_to(:yaml) do |body|
+      show_action_should_respond_to(:yaml) do |body|
         YAML.safe_load body
       end
     end
@@ -124,7 +126,7 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
       should respond_with :success
       should "show only dependencies that have rubygem" do
         assert_match(/foo/, @response.body)
-        assert_no_match(/missing/, @response.body)
+        refute_match(/missing/, @response.body)
       end
     end
   end
@@ -139,7 +141,7 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
       @request.env["HTTP_ORIGIN"] = "https://pages.github.com/"
       get :show, params: { id: "ZenTest" }, format: "json"
 
-      assert_equal 200, @response.status
+      assert_response :ok
       assert_equal "*", @response.headers["Access-Control-Allow-Origin"]
       assert_equal "GET", @response.headers["Access-Control-Allow-Methods"]
       assert_equal "1728000", @response.headers["Access-Control-Max-Age"]
@@ -149,7 +151,7 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
       @request.env["HTTP_ORIGIN"] = "https://pages.github.com/"
       process :show, method: :options, params: { id: "ZenTest" }
 
-      assert_equal 200, @response.status
+      assert_response :ok
       assert_equal "*", @response.headers["Access-Control-Allow-Origin"]
       assert_equal "GET", @response.headers["Access-Control-Allow-Methods"]
       assert_equal "X-Requested-With, X-Prototype-Version", @response.headers["Access-Control-Allow-Headers"]
@@ -158,7 +160,7 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
     end
   end
 
-  def self.should_respond_to(format)
+  def self.index_action_should_respond_to(format)
     context "with #{format.to_s.upcase} for a list of gems" do
       setup do
         @mygems = [create(:rubygem, name: "SomeGem"), create(:rubygem, name: "AnotherGem")]
@@ -178,7 +180,7 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
       should respond_with :success
 
       should "return a hash" do
-        assert_not_nil(yield(@response.body))
+        refute_nil(yield(@response.body))
       end
       should "only return my gems" do
         gem_names = yield(@response.body).pluck("name").sort
@@ -197,11 +199,11 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
     end
 
     context "On GET to index" do
-      should_respond_to :json do |body|
+      index_action_should_respond_to :json do |body|
         JSON.load body
       end
 
-      should_respond_to :yaml do |body|
+      index_action_should_respond_to :yaml do |body|
         YAML.safe_load body
       end
     end
@@ -328,6 +330,89 @@ class Api::V1::RubygemsControllerTest < ActionController::TestCase
         assert_equal "true", span.get_tag("appsec.events.gem.push.failure.track")
         assert_equal @user.id.to_s, span.get_tag("appsec.events.gem.push.failure.usr.id")
         assert_nil span.get_tag("appsec.events.gem.push.failure.gem.version")
+      end
+
+      should "tag the AppSec push event with the actor" do
+        span = with_appsec_trace { post :create, body: gem_file(&:read) }
+
+        assert_equal @user.to_gid.to_s, span.get_tag("appsec.events.gem.push.success.actor.gid")
+        assert_equal "user", span.get_tag("appsec.events.gem.push.success.actor.type")
+      end
+
+      context "push log line" do
+        include SemanticLogger::Test::Minitest
+
+        setup do
+          @logger = SemanticLogger::Test::CaptureLogEvents.new
+          @controller.stubs(:logger).returns(@logger)
+        end
+
+        should "log a successful push with the actor, gem, edge and request fields" do
+          ActionDispatch::Request.any_instance.stubs(:uuid).returns("req-123")
+
+          post :create, body: gem_file(&:read)
+
+          event = @logger.events.sole
+
+          assert_semantic_logger_event(event, level: :info, message: "gem.push.success")
+          assert_equal @user.to_gid.to_s, event.payload.dig(:actor, :gid)
+          assert_equal "user", event.payload.dig(:actor, :type)
+          assert_kind_of Integer, event.payload.dig(:actor, :account_age_seconds)
+          refute event.payload[:actor].key?(:repository)
+          assert_equal @user.id.to_s, event.payload[:"usr.id"]
+          assert_equal "test", event.payload[:"gem.name"]
+          assert_equal "0.0.0", event.payload[:"gem.version"]
+          assert_equal "req-123", event.payload[:request_id]
+          assert event.payload[:edge_bypassed]
+        end
+
+        should "not flag a push carrying the edge proxy token as bypassed" do
+          @request.headers["RUBYGEMS-PROXY-TOKEN"] = "abc"
+
+          stub_const(Gemcutter::RequestIpAddress, :PROXY_TOKENS, ["abc"]) do
+            post :create, body: gem_file(&:read)
+          end
+
+          refute @logger.events.sole.payload[:edge_bypassed]
+        end
+
+        should "log a failed push without gem version" do
+          post :create, body: "really bad gem"
+
+          event = @logger.events.sole
+
+          assert_semantic_logger_event(event, level: :info, message: "gem.push.failure")
+          assert_equal @user.to_gid.to_s, event.payload.dig(:actor, :gid)
+          refute event.payload.key?(:"gem.version")
+        end
+
+        should "log a trusted publisher push with the workflow as the actor and no account age" do
+          publisher = create(:oidc_trusted_publisher_github_action)
+          create(:api_key, owner: publisher, key: "tp-key", scopes: %i[push_rubygem])
+          @request.env["HTTP_AUTHORIZATION"] = "tp-key"
+
+          post :create, body: "really bad gem"
+
+          event = @logger.events.sole
+          actor = event.payload[:actor]
+
+          assert_equal publisher.to_gid.to_s, actor[:gid]
+          assert_equal "trusted_publisher", actor[:type]
+          assert_equal publisher.repository, actor[:repository]
+          assert_equal publisher.workflow_slug, actor[:workflow]
+          assert_equal publisher.repository_owner_id, actor[:repository_owner_id]
+          refute actor.key?(:account_age_seconds)
+          refute event.payload.key?(:"usr.id")
+        end
+
+        should "not fail an already-processed push when logging raises" do
+          @logger.stubs(:info).raises(RuntimeError, "logging is down")
+
+          post :create, body: gem_file(&:read)
+
+          assert_response :success
+          assert_equal 1, Rubygem.count
+        end
       end
     end
 

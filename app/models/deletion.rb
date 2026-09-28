@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class Deletion < ApplicationRecord
+  MAXIMUM_VERSION_AGE = 30.days
+  MAXIMUM_DOWNLOADS = 100_000
+
   # we nullify the user when they delete their account
   belongs_to :user, optional: true
 
@@ -37,9 +40,9 @@ class Deletion < ApplicationRecord
   end
 
   def ineligible_reason
-    if version.created_at&.before? 30.days.ago
+    if version.created_at&.before? MAXIMUM_VERSION_AGE.ago
       "Versions published more than 30 days ago cannot be deleted."
-    elsif version.downloads_count > 100_000
+    elsif version.downloads_count > MAXIMUM_DOWNLOADS
       "Versions with more than 100,000 downloads cannot be deleted."
     end
   end
@@ -51,6 +54,7 @@ class Deletion < ApplicationRecord
       reason: ineligible_reason,
       number: version.number,
       platform: version.platform,
+      ruby_abi: version.ruby_abi,
       yanked_by: user.display_handle,
       actor_gid: user.to_gid,
       version_gid: version.to_gid
@@ -72,6 +76,7 @@ class Deletion < ApplicationRecord
     errors.add(:rubygem, "does not match version rubygem name") unless rubygem == version.rubygem.name
     errors.add(:number, "does not match version number") unless number == version.number
     errors.add(:platform, "does not match version platform") unless platform == version.platform
+    errors.add(:ruby_abi, "does not match version Ruby ABI") unless ruby_abi == version.ruby_abi
   end
 
   def rubygem_name
@@ -82,6 +87,7 @@ class Deletion < ApplicationRecord
     self.rubygem = rubygem_name
     self.number = version.number
     self.platform = version.platform
+    self.ruby_abi = version.ruby_abi
   end
 
   def expire_cache
@@ -145,18 +151,24 @@ class Deletion < ApplicationRecord
   end
 
   def send_gem_yanked_mail
-    version.rubygem.push_notifiable_owners.each do |notified_user|
+    rubygem = version.rubygem
+    notify_yanked(rubygem.push_notifiable_owners)
+    notify_yanked(rubygem.organization.push_notifiable_members) if rubygem.organization.present?
+  end
+
+  def notify_yanked(users)
+    users.each do |notified_user|
       Mailer.gem_yanked(user.id, version.id, notified_user.id).deliver_later
     end
   end
 
   def record_yank_event
     version.rubygem.record_event!(Events::RubygemEvent::VERSION_YANKED, number: version.number, platform: version.platform,
-yanked_by: user&.display_handle, actor_gid: user&.to_gid, version_gid: version.to_gid, force:)
+      ruby_abi: version.ruby_abi, yanked_by: user&.display_handle, actor_gid: user&.to_gid, version_gid: version.to_gid, force:)
   end
 
   def record_unyank_event
     version.rubygem.record_event!(Events::RubygemEvent::VERSION_UNYANKED, number: version.number, platform: version.platform,
-version_gid: version.to_gid)
+      ruby_abi: version.ruby_abi, version_gid: version.to_gid)
   end
 end

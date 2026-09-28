@@ -96,7 +96,7 @@ class UsersControllerTest < ActionController::TestCase
         assert_no_changes -> { User.count } do
           post :create, params: { user: { password: PasswordHelpers::SECURE_TEST_PASSWORD } }
         end
-        assert_response :ok
+        assert_response :unprocessable_entity
         assert page.has_content?("Email address is not a valid email")
       end
     end
@@ -111,10 +111,18 @@ class UsersControllerTest < ActionController::TestCase
         assert_predicate user, :public_email?
       end
 
+      should "create a private user when public email is blank" do
+        post :create, params: { user: { email: "foo@bar.com", password: PasswordHelpers::SECURE_TEST_PASSWORD, public_email: "" } }
+
+        user = User.find_by!(email: "foo@bar.com")
+
+        refute_predicate user, :public_email?
+      end
+
       should "create a user but dont assign not valid parameters" do
         post :create, params: { user: { email: "foo@bar.com", password: "secret", api_key: "nonono" } }
 
-        assert_not_equal "nonono", User.where(email: "foo@bar.com").pick(:api_key)
+        refute_equal "nonono", User.where(email: "foo@bar.com").pick(:api_key)
       end
     end
 
@@ -126,7 +134,7 @@ class UsersControllerTest < ActionController::TestCase
       should "set email_confirmation_token" do
         user = User.find_by_name("foo")
 
-        assert_not_nil user.confirmation_token
+        refute_nil user.confirmation_token
       end
 
       should "deliver confirmation mail" do

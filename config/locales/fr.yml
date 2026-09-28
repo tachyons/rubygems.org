@@ -1,5 +1,8 @@
 ---
 fr:
+  admin:
+    delete_user:
+      blocked_reason:
   credentials_required:
   copied: Copié!
   copy_to_clipboard: Copier
@@ -95,6 +98,8 @@ fr:
         repository_owner_id:
         workflow_repository_owner:
         workflow_repository_name:
+      oidc/trusted_publisher/gitlab:
+        project_id:
       oidc/pending_trusted_publisher:
         rubygem_name:
     errors:
@@ -105,11 +110,17 @@ fr:
         disposable_email_domain:
         public_suffix:
         protected_provider:
+        publisher_already_exists:
+        invalid_extension:
       models:
         api_key:
           attributes:
             expires_at:
               inclusion:
+        gem_name_reservation:
+          attributes:
+            base:
+              organization_limit_reached:
         organization:
           attributes:
             handle:
@@ -163,6 +174,10 @@ fr:
         id_token_signing_alg_values_supported:
     errors:
       models:
+        oidc/access_policy:
+          attributes:
+            statements:
+              too_complex:
         oidc/api_key_permissions:
           attributes:
             valid_for:
@@ -182,6 +197,7 @@ fr:
       invalid_gem:
     destroy:
       success:
+      already_expired:
     index:
       api_keys:
       name:
@@ -205,8 +221,11 @@ fr:
       reset:
       save_key:
       mfa:
+      mfa_enabled_notice:
       expiration:
       update_owner:
+      view_expired:
+      view_active:
     new:
       new_api_key:
     reset:
@@ -217,6 +236,7 @@ fr:
     edit:
       edit_api_key:
       invalid_key:
+      expired_key:
     all_gems:
     gem_ownership_removed:
   dashboards:
@@ -287,6 +307,7 @@ fr:
         about: À propos
         api: API
         blog: Blog
+        bluesky:
         contribute: Contribuer
         data: Données
         docs: Documentation
@@ -306,6 +327,7 @@ fr:
         statistics: Stats
         status: Statut
         support_us:
+        x:
         supported_by: Soutenu par
         operated_by:
         supported_by_html: |
@@ -313,7 +335,6 @@ fr:
           <br class="hidden lg:block"> est soutenu par
         uptime: Uptime
         secured_by:
-        looking_for_maintainers:
       header:
         profile: Profil
         dashboard: Dashboard
@@ -333,6 +354,8 @@ fr:
     gems:
     members:
     invite_member:
+    reservations:
+    reserve_gem_name:
   mailer:
     confirm_your_email: Veuillez confirmer votre adresse email avec le lien qui vous
       a été envoyé par email.
@@ -375,6 +398,10 @@ fr:
     gem_yanked:
       subject:
       title:
+    cache_exposure_inactive_notice:
+      subject:
+    cache_exposure_notice:
+      subject:
     reset_api_key:
       subject:
       title:
@@ -468,6 +495,7 @@ fr:
       add_member:
       invite:
       transfer:
+      reservations:
     members:
       create:
         user_already_invited:
@@ -493,6 +521,26 @@ fr:
         role:
         create:
         invite:
+    gem_name_reservations:
+      create:
+        gem_name_reserved:
+      destroy:
+        gem_name_reservation_removed:
+      index:
+        description:
+        no_reservations:
+        reserve:
+        remove:
+        confirm_remove:
+      new:
+        title:
+        name:
+        name_hint:
+        reserve:
+        limit_html:
+        limit_reached_html:
+        unlimited:
+        disclaimer:
     invitations:
       show:
         accept:
@@ -667,6 +715,9 @@ fr:
       update:
       owner_heading:
       push_heading:
+      gems_heading:
+      organizations_heading:
+      organization_info:
   webauthn_verifications:
     expired_or_already_used:
     no_port:
@@ -883,6 +934,17 @@ fr:
     index:
       downloads: Téléchargements
       title: Gems
+    advisories:
+      title:
+        one:
+        other:
+      malware:
+      severity_count:
+      show_fewer:
+      show_more:
+        one:
+        other:
+      view_advisory:
     show:
       bundler_header: Gemfile
       install: installation
@@ -899,6 +961,7 @@ fr:
       requirements_header: Dépendances
       show_all_versions: Voir toutes les versions (%{count})
       versions_header: Versions
+      ruby_abi:
       yanked_notice: 'Retrait de Gem : disponible ni directement, ni pour les gems
         qui en dépendraient.'
     show_yanked:
@@ -1012,6 +1075,8 @@ fr:
       imported_gem_version_notice:
     version:
       yanked: retiré
+      ruby_abi:
+      vulnerable:
   webauthn_credentials:
     callback:
       success:
@@ -1107,6 +1172,8 @@ fr:
         title:
     trusted_publisher:
       unsupported_type:
+      select_provider:
+      select:
       github_actions:
         repository_owner_help_html:
         repository_name_help_html:
@@ -1114,6 +1181,23 @@ fr:
         environment_help_html:
         workflow_repository_owner_help_html:
         workflow_repository_name_help_html:
+      gitlab:
+        name:
+        ref_types:
+          any:
+          tag:
+          branch:
+        project_path_help_html:
+        ci_config_path_help_html:
+        environment_help_html:
+        ref_type_help_html:
+        branch_name_help_html:
+        table:
+          project_path:
+          ci_config_path:
+          environment:
+          ref_type:
+          branch_name:
       pending:
         rubygem_name_help_html:
   duration:
@@ -1173,6 +1257,7 @@ fr:
       api_key:
         api_key_created:
         api_key_deleted:
+        api_key_cache_exposure_revoked:
         api_key_name:
         api_key_scopes:
         api_key_gem_html:

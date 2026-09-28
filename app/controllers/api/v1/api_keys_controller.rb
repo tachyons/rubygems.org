@@ -6,20 +6,10 @@ class Api::V1::ApiKeysController < Api::BaseController
   before_action :deny_shared_cache
 
   def show
-    authenticate_or_request_with_http_basic do |username, password|
-      # strip username mainly to remove null bytes
-      user = User.authenticate(username.strip, password)
-      check_mfa(user) do
-        if request.head?
-          head :ok
-        else
-          key = generate_unique_rubygems_key
-          api_key = user.api_keys.build(legacy_key_defaults.merge(hashed_key: hashed_key(key)))
-
-          save_and_respond(api_key, key)
-        end
-      end
-    end
+    render plain: "This endpoint has been retired. `gem signin` (GET /api/v1/api_key) is no " \
+                  "longer supported. Create an API key at https://rubygems.org/profile/api_keys " \
+                  "and set it up following https://guides.rubygems.org/api-key-scopes/.",
+      status: :gone
   end
 
   def create
@@ -60,6 +50,7 @@ class Api::V1::ApiKeysController < Api::BaseController
     if user.unconfirmed?
       render_forbidden t(:email_not_confirmed)
     elsif user.mfa_gem_signin_authorized?(otp)
+      Current.user = user
       if user.mfa_required_not_yet_enabled?
         render_forbidden t("multifactor_auths.api.mfa_required_not_yet_enabled").chomp
       elsif user.mfa_required_weak_level_enabled?

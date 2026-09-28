@@ -1,5 +1,8 @@
 ---
 zh-TW:
+  admin:
+    delete_user:
+      blocked_reason:
   credentials_required: 需要認證
   copied: 已複製
   copy_to_clipboard: 複製
@@ -90,6 +93,8 @@ zh-TW:
         repository_owner_id:
         workflow_repository_owner:
         workflow_repository_name:
+      oidc/trusted_publisher/gitlab:
+        project_id:
       oidc/pending_trusted_publisher:
         rubygem_name:
     errors:
@@ -100,11 +105,17 @@ zh-TW:
         disposable_email_domain:
         public_suffix:
         protected_provider:
+        publisher_already_exists:
+        invalid_extension:
       models:
         api_key:
           attributes:
             expires_at:
               inclusion:
+        gem_name_reservation:
+          attributes:
+            base:
+              organization_limit_reached:
         organization:
           attributes:
             handle:
@@ -158,6 +169,10 @@ zh-TW:
         id_token_signing_alg_values_supported: IP 權杖簽署演算法
     errors:
       models:
+        oidc/access_policy:
+          attributes:
+            statements:
+              too_complex:
         oidc/api_key_permissions:
           attributes:
             valid_for:
@@ -177,6 +192,7 @@ zh-TW:
       invalid_gem:
     destroy:
       success: 已刪除 API 金鑰：%{name}
+      already_expired:
     index:
       api_keys: API 金鑰
       name: 名稱
@@ -200,8 +216,11 @@ zh-TW:
       reset: 重設
       save_key: 請注意，我們無法再次顯示您的 API 金鑰。新 API 金鑰：
       mfa: MFA
+      mfa_enabled_notice:
       expiration:
       update_owner:
+      view_expired:
+      view_active:
     new:
       new_api_key: 新 API 金鑰
     reset:
@@ -212,6 +231,7 @@ zh-TW:
     edit:
       edit_api_key: 編輯 API 金鑰
       invalid_key: 無法編輯無效的 API 金鑰。請刪除此金鑰並重新建立。
+      expired_key:
     all_gems: 所有 Gems
     gem_ownership_removed:
   dashboards:
@@ -278,6 +298,7 @@ zh-TW:
         about: 關於
         api: API
         blog: 部落格
+        bluesky:
         contribute: 貢獻
         data: 資料
         docs: 文件
@@ -297,6 +318,7 @@ zh-TW:
         statistics: 統計
         status: 狀態
         support_us:
+        x:
         supported_by: 支持
         operated_by:
         supported_by_html: |
@@ -304,7 +326,6 @@ zh-TW:
           <br class="hidden lg:block"> 由以下支持
         uptime: 上線時間
         secured_by:
-        looking_for_maintainers: 徵求維護者
       header:
         profile: 個人檔案
         dashboard: 儀表板
@@ -324,6 +345,8 @@ zh-TW:
     gems:
     members:
     invite_member:
+    reservations:
+    reserve_gem_name:
   mailer:
     confirm_your_email: 已寄送連結，請點擊連結來確認您的電子郵件地址。
     confirmation_subject: "%{host} 電子郵件地址確認"
@@ -360,6 +383,10 @@ zh-TW:
     gem_yanked:
       subject: Gem %{gem} 已從 RubyGems.org 移除
       title: Gem 已移除
+    cache_exposure_inactive_notice:
+      subject:
+    cache_exposure_notice:
+      subject:
     reset_api_key:
       subject: RubyGems.org 上的 API 金鑰遭重設
       title: API 金鑰重設
@@ -460,6 +487,7 @@ zh-TW:
       add_member:
       invite:
       transfer:
+      reservations:
     members:
       create:
         user_already_invited:
@@ -485,6 +513,26 @@ zh-TW:
         role:
         create:
         invite:
+    gem_name_reservations:
+      create:
+        gem_name_reserved:
+      destroy:
+        gem_name_reservation_removed:
+      index:
+        description:
+        no_reservations:
+        reserve:
+        remove:
+        confirm_remove:
+      new:
+        title:
+        name:
+        name_hint:
+        reserve:
+        limit_html:
+        limit_reached_html:
+        unlimited:
+        disclaimer:
     invitations:
       show:
         accept:
@@ -649,6 +697,9 @@ zh-TW:
       update: 更新
       owner_heading: 所有權通知
       push_heading: 推送通知
+      gems_heading:
+      organizations_heading:
+      organization_info:
   webauthn_verifications:
     expired_or_already_used: 您所使用的連結中的權杖已過期或被使用。
     no_port: 未提供連接埠。請再試一次。
@@ -854,6 +905,17 @@ zh-TW:
     index:
       downloads: 下載
       title: Gems
+    advisories:
+      title:
+        one:
+        other:
+      malware:
+      severity_count:
+      show_fewer:
+      show_more:
+        one:
+        other:
+      view_advisory:
     show:
       bundler_header: Gemfile
       install: 安裝
@@ -870,6 +932,7 @@ zh-TW:
       requirements_header: 必填
       show_all_versions: 顯示所有版本（共 %{count}）
       versions_header: 版本列表
+      ruby_abi:
       yanked_notice: 這個 Gem 版本已被移除，因此無法提供下載，也無法被其他的 Gem 相依。
     show_yanked:
       not_hosted_notice: 這個 Gem 目前沒有在 RubyGems.org 上
@@ -971,6 +1034,8 @@ zh-TW:
         gemspec 指定。
     version:
       yanked: 已被移除
+      ruby_abi:
+      vulnerable:
   webauthn_credentials:
     callback:
       success: 您已成功註冊安全裝置。
@@ -1066,6 +1131,8 @@ zh-TW:
         title:
     trusted_publisher:
       unsupported_type:
+      select_provider:
+      select:
       github_actions:
         repository_owner_help_html:
         repository_name_help_html:
@@ -1073,6 +1140,23 @@ zh-TW:
         environment_help_html:
         workflow_repository_owner_help_html:
         workflow_repository_name_help_html:
+      gitlab:
+        name:
+        ref_types:
+          any:
+          tag:
+          branch:
+        project_path_help_html:
+        ci_config_path_help_html:
+        environment_help_html:
+        ref_type_help_html:
+        branch_name_help_html:
+        table:
+          project_path:
+          ci_config_path:
+          environment:
+          ref_type:
+          branch_name:
       pending:
         rubygem_name_help_html:
   duration:
@@ -1132,6 +1216,7 @@ zh-TW:
       api_key:
         api_key_created:
         api_key_deleted:
+        api_key_cache_exposure_revoked:
         api_key_name:
         api_key_scopes:
         api_key_gem_html:

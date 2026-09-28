@@ -3,7 +3,6 @@
 class UsersController < ApplicationController
   before_action :redirect_to_root, if: :signed_in?
   before_action :reject_disabled_signup, only: :create
-  layout "hammy"
 
   def new
     @user = User.new
@@ -12,6 +11,7 @@ class UsersController < ApplicationController
 
   def create
     @user = User.new(user_params)
+    @user.public_email = false if @user.public_email.nil?
     @user.policies_acknowledged_at = Time.zone.now
     if @user.save
       Datadog::Kit::AppSec::Events::V2.track_user_signup(
@@ -22,7 +22,7 @@ class UsersController < ApplicationController
       flash[:notice] = t(".email_sent")
       redirect_back_or_to root_path
     else
-      render template: "users/new"
+      render template: "users/new", status: :unprocessable_content
     end
   end
 

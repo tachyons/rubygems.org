@@ -4,6 +4,8 @@ require "test_helper"
 
 class Api::CompactIndexTest < ActionDispatch::IntegrationTest
   setup do
+    Rails.cache.delete("names")
+
     @rubygem2 = create(:rubygem, name: "gemB")
     @version = create(:version, rubygem: @rubygem2, number: "1.0.0", **checksum_attribute("v2qw2dwe"))
 
@@ -33,6 +35,10 @@ class Api::CompactIndexTest < ActionDispatch::IntegrationTest
     create(:dependency, rubygem: dep2, version: @gem_a_v21)
   end
 
+  teardown do
+    Rails.cache.delete("names")
+  end
+
   test "/names output" do
     get names_path
 
@@ -54,6 +60,8 @@ class Api::CompactIndexTest < ActionDispatch::IntegrationTest
   test "/names partial response" do
     get names_path
     full_body = @response.body
+
+    assert_operator full_body.bytesize, :>, 15
 
     get names_path, env: { range: "bytes=15-" }
 
@@ -91,6 +99,29 @@ class Api::CompactIndexTest < ActionDispatch::IntegrationTest
     assert_equal etag(@response.body), @response.headers["ETag"]
     assert_equal "sha-256=#{expected_digest}", @response.headers["Digest"]
     assert_equal "sha-256=:#{expected_digest}:", @response.headers["Repr-Digest"]
+  end
+
+  test "/versions includes content-addressable versions for gems which support single Ruby ABI" do
+    rubygem = create(:rubygem, name: "v2rubyabi")
+    version = create(
+      :version,
+      rubygem:,
+      number: "2.9.0",
+      platform: "x86_64-linux-musl",
+      gem_platform: "x86_64-linux-musl",
+      required_ruby_version: "~> 3.2.0",
+      required_rubygems_version: ">= 4.1.0.beta1",
+      sha256: Digest::SHA2.base64digest("v2rubyabi-2.9.0-x86_64-linux-musl"),
+      created_at: Time.utc(2026, 5, 1, 12, 0, 0),
+      ruby_abi: "3.2"
+    )
+
+    content_address = version.content_address
+
+    get versions_path
+
+    assert_response :success
+    assert_includes @response.body, "v2rubyabi 2.9.0-#{content_address} #{current_checksum(version)}"
   end
 
   test "/versions partial response" do
@@ -175,6 +206,71 @@ class Api::CompactIndexTest < ActionDispatch::IntegrationTest
     assert_equal "#{current_info_prefix}/* gem/v2gem #{current_info_prefix}/v2gem", @response.headers["Surrogate-Key"]
   end
 
+  test "/info serves correct format for gem which supports single Ruby ABI" do
+    rubygem = create(:rubygem, name: "v2rubyabi")
+    version = create(
+      :version,
+      rubygem:,
+      number: "2.9.0",
+      platform: "x86_64-linux-musl",
+      gem_platform: "x86_64-linux-musl",
+      required_ruby_version: "~> 3.2.0",
+      required_rubygems_version: ">= 4.1.0.beta1",
+      sha256: Digest::SHA2.base64digest("v2rubyabi-2.9.0-x86_64-linux-musl"),
+      created_at: Time.utc(2026, 5, 1, 12, 0, 0),
+      ruby_abi: "3.2"
+    )
+
+    content_address = version.content_address
+
+    expected = <<~VERSIONS_FILE
+      ---
+      2.9.0-#{content_address} |checksum:#{Version._sha256_hex(version.sha256)},ruby:~> 3.2.0,rubygems:>= 4.1.0.beta1,platform:x86_64-linux-musl,created_at:#{version.created_at.utc.iso8601}
+    VERSIONS_FILE
+
+    expected_digest = digest(expected)
+
+    get info_path(gem_name: "v2rubyabi")
+
+    assert_response :success
+    assert_equal expected, @response.body
+    assert_equal etag(expected), @response.headers["ETag"]
+    assert_equal "sha-256=#{expected_digest}", @response.headers["Digest"]
+    assert_equal "sha-256=:#{expected_digest}:", @response.headers["Repr-Digest"]
+    assert_equal "#{current_info_prefix}/* gem/v2rubyabi #{current_info_prefix}/v2rubyabi", @response.headers["Surrogate-Key"]
+  end
+
+  test "/info serves correct format for gem which supports multiple Ruby ABIs" do
+    rubygem = create(:rubygem, name: "v2multiabi")
+    version = create(
+      :version,
+      rubygem:,
+      number: "2.9.0",
+      platform: "x86_64-linux-musl",
+      gem_platform: "x86_64-linux-musl",
+      required_ruby_version: ">= 3.2.0",
+      required_rubygems_version: ">= 4.1.0.beta1",
+      sha256: Digest::SHA2.base64digest("v2multiabi-2.9.0-x86_64-linux-musl"),
+      created_at: Time.utc(2026, 5, 1, 12, 0, 0)
+    )
+
+    expected = <<~VERSIONS_FILE
+      ---
+      2.9.0-x86_64-linux-musl |checksum:#{Version._sha256_hex(version.sha256)},ruby:>= 3.2.0,rubygems:>= 4.1.0.beta1,created_at:#{version.created_at.utc.iso8601}
+    VERSIONS_FILE
+
+    expected_digest = digest(expected)
+
+    get info_path(gem_name: "v2multiabi")
+
+    assert_response :success
+    assert_equal expected, @response.body
+    assert_equal etag(expected), @response.headers["ETag"]
+    assert_equal "sha-256=#{expected_digest}", @response.headers["Digest"]
+    assert_equal "sha-256=:#{expected_digest}:", @response.headers["Repr-Digest"]
+    assert_equal "#{current_info_prefix}/* gem/v2multiabi #{current_info_prefix}/v2multiabi", @response.headers["Surrogate-Key"]
+  end
+
   test "/info partial response" do
     rubygem = create(:rubygem, name: "v2partial")
     version = create(:version, rubygem:, number: "1.0.0", created_at: Time.utc(2026, 5, 1, 12, 0, 0))
@@ -211,7 +307,7 @@ class Api::CompactIndexTest < ActionDispatch::IntegrationTest
       get info_path(gem_name: "v2yank")
 
       assert_response :success
-      assert_not_includes @response.body, "1.0.0"
+      refute_includes @response.body, "1.0.0"
       assert_equal "#{current_info_prefix}/* gem/v2yank #{current_info_prefix}/v2yank", @response.headers["Surrogate-Key"]
     end
   end

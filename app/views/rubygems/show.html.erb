@@ -6,10 +6,10 @@
   <%= auto_discovery_link_tag(:atom, rubygem_versions_path(@rubygem.slug, format: "atom"), {title: "#{@rubygem.name} Version Feed"}) %>
   <% if @rubygem.versions.any? && @latest_version.indexed %>
     <!-- canonical url -->
-    <link rel="canonical" href="<%= rubygem_version_url(@rubygem.slug, @latest_version.slug) %>" />
+    <link rel="canonical" href="<%= rubygem_version_url(@rubygem.slug, @latest_version.slug) %>">
     <%# Locale alternate links temporarily disabled to improve cacheability and mitigate bot abuse %>
   <% else %>
-    <meta name="robots" content="noindex" />
+    <meta name="robots" content="noindex">
   <% end %>
 <% end %>
 
@@ -26,13 +26,15 @@
 <div class="flex flex-col gap-8 pb-16 lg:pt-10 text-neutral-800 dark:text-neutral-200">
   <%= render "rubygems/tabs", rubygem: @rubygem, version: @latest_version, current: :gem_info %>
 
+  <%= render Rubygem::AdvisoriesComponent.new(advisories: @advisories, version: @latest_version) %>
+
   <% if @latest_version.indexed %>
     <div class="flex flex-col gap-3">
       <%= render CopyFieldComponent.new(value: @latest_version.to_bundler(locked_version: @on_version_page), name: "gemfile_text", label: t(".bundler_header")) %>
       <%= render CopyFieldComponent.new(value: @latest_version.to_install, name: "install_text", label: t(".install")) %>
     </div>
 
-    <div id="markup" class="gem__desc text-b2 leading-relaxed break-words [&_a]:text-orange-500 dark:[&_a]:text-orange-400 [&_a:hover]:underline [&_p]:mb-3 [&_pre]:font-mono [&_pre]:text-c4 [&_pre]:overflow-x-auto [&_code]:font-mono [&_code]:text-c4 [&_h1]:text-h4 [&_h1]:font-semibold [&_h2]:text-b1 [&_h2]:font-semibold [&_h3]:text-b2 [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">
+    <div id="markup" class="text-b2 leading-relaxed break-words [&_a]:text-orange-500 dark:[&_a]:text-orange-400 [&_a:hover]:underline [&_p]:mb-3 [&_pre]:font-mono [&_pre]:text-c4 [&_pre]:overflow-x-auto [&_code]:font-mono [&_code]:text-c4 [&_h1]:text-h4 [&_h1]:font-semibold [&_h2]:text-b1 [&_h2]:font-semibold [&_h3]:text-b2 [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">
       <%= simple_markup(@latest_version.info) %>
     </div>
 
@@ -64,21 +66,8 @@
   <% if @versions.present? %>
     <div class="versions">
       <h3 class="<%= section_heading_class %> mb-2"><%= t ".versions_header" %></h3>
-      <ol class="gem__versions flex flex-col gap-1.5">
-        <% @versions.each do |version| %>
-          <li class="flex flex-wrap items-center gap-x-2">
-            <%= link_to version.number, rubygem_version_path(version.rubygem.slug, version.slug),
-                  class: "font-mono text-c4 px-2 py-0.5 rounded-sm bg-green-200 dark:bg-green-800 text-neutral-900 dark:text-white hover:bg-green-300 dark:hover:bg-green-700" %>
-            <span class="text-b4 text-neutral-700 dark:text-neutral-400"><%= version_date_tag(version) %></span>
-            <% if version.platformed? %>
-              <span class="text-b4 text-neutral-700 dark:text-neutral-400"><%= version.platform %></span>
-            <% end %>
-            <span class="text-b4 text-neutral-700 dark:text-neutral-400">(<%= number_to_human_size(version.size) %>)</span>
-            <% if version.yanked? %>
-              <span class="text-b4 font-semibold text-red-600 dark:text-red-400"><%= t "versions.version.yanked" %></span>
-            <% end %>
-          </li>
-        <% end %>
+      <ol data-testid="gem-versions" class="flex flex-col gap-1.5">
+        <%= render @versions %>
       </ol>
       <% if show_all_versions_link?(@rubygem) %>
         <%= link_to t(".show_all_versions", count: @rubygem.versions.count), rubygem_versions_url(@rubygem.slug),
